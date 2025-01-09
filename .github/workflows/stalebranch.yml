@@ -1,12 +1,8 @@
-
-# .github/workflows/stale-branches.yml
-
-name: Stale Branches and its report
+name: Stale Branches Report
 
 on:
-  schedule:
-    - cron: '0 6 * * 1-5'
-    
+ workflow_dispatch:
+
 permissions:
   issues: write
   contents: write
@@ -15,12 +11,11 @@ jobs:
   stale_branches:
     runs-on: ubuntu-latest
     steps:
-    - name: Stale Branches
+    - name: Identify Stale Branches
       uses: crs-k/stale-branches@v5.0.0
       with:
-        repo-token: '${{ secrets.GITHUB_TOKEN }}'
-        days-before-stale: 120
-        days-before-delete: 180
+        repo-token: '${{ secrets.Token_git }}'
+        days-before-stale: 1
         comment-updates: false
         max-issues: 20
         tag-committer: false
@@ -29,27 +24,21 @@ jobs:
         branches-filter-regex: '^((?!dependabot))'
         rate-limit: false
         pr-check: false
-        dry-run: false
+        dry-run: true # Ensures no branches are deleted
         ignore-issue-interaction: false
-        
 
-
-    - name: Save Report of Stale Branches
+    - name: Generate Report
       run: |
-        echo "Generating report for stale branches..."
-        echo "Repository: ${{ github.repository }}" > stale_branches_report.txt
-        echo "Generated on: $(date)" >> stale_branches_report.txt
-        echo "Stale Branches (inactive for over 8 months):" >> stale_branches_report.txt
-        echo "" >> stale_branches_report.txt
+        echo "Generating a report of stale branches..."
+        if [ -f stale-branches.json ]; then
+          cat stale-branches.json > stale-branches-report.json
+          echo "Stale branches report generated as stale-branches-report.json"
+        else
+          echo "No stale branches found." > stale-branches-report.json
+        fi
 
-        # List stale branches using the action's output
-        stale_branches=$(cat $GITHUB_WORKSPACE/stale-branches-output.log || echo "No stale branches found.")
-        echo "$stale_branches" >> stale_branches_report.txt
-
-    - name: Upload Report
+    - name: Upload Report as Artifact
       uses: actions/upload-artifact@v3
       with:
         name: stale-branches-report
-        path: stale_branches_report.txt
-
-  
+        path: stale-branches-report.json
